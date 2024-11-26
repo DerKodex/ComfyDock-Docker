@@ -14,8 +14,8 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean
 
 # Install Python dependencies
-RUN pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124 \
-    && pip install -U xformers==0.0.28.post3 --index-url https://download.pytorch.org/whl/cu124
+RUN pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124
+RUN pip install -U xformers==0.0.28.post3
 
 # Clone and set up ComfyUI
 RUN git clone --branch v0.2.7 https://github.com/comfyanonymous/ComfyUI.git
