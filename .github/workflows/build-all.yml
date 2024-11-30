@@ -1,0 +1,35 @@
+name: Build All Docker Images
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker images
+        run: |
+          find dockerfiles -name 'dockerfile' | while read dockerfile; do
+            # Extract version information from the path
+            dir=$(dirname "$dockerfile")
+            comfyui_version=$(basename "$(dirname "$dir")")
+            comfyui_version=${comfyui_version#comfyui-}
+            cuda_pytorch=$(basename "$dir")
+            tag="${comfyui_version}-base-${cuda_pytorch}"
+
+            # Build the image
+            docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/comfyui-env:${tag} -f "$dockerfile" "$dir"
+
+            # Push the image
+            docker push ${{ secrets.DOCKERHUB_USERNAME }}/comfyui-env:${tag}
+          done
