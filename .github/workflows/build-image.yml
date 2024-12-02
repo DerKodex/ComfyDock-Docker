@@ -29,6 +29,11 @@ jobs:
             dockerfiles:
               - 'dockerfiles/**/dockerfile'
 
+      - name: Debug paths-filter outputs
+        run: |
+          echo "Dockerfiles changed: ${{ steps.filter.outputs.dockerfiles_changed }}"
+          echo "Matched Dockerfiles: ${{ steps.filter.outputs.dockerfiles_matched }}"
+
       - name: Build and push new Docker images
         if: steps.filter.outputs.dockerfiles_changed == 'true'
         run: |
