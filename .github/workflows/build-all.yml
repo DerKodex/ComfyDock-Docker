@@ -22,10 +22,9 @@ jobs:
           find dockerfiles -name 'dockerfile' | while read dockerfile; do
             # Extract version information from the path
             dir=$(dirname "$dockerfile")
-            comfyui_version=$(basename "$(dirname "$dir")")
+            comfyui_version=$(basename "$dir")
             comfyui_version=${comfyui_version#comfyui-}
-            cuda_pytorch=$(basename "$dir")
-            tag="${comfyui_version}-base-${cuda_pytorch}"
+            tag="${comfyui_version}"
 
             # Build the image
             docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/comfyui-env:${tag} -f "$dockerfile" "$dir"

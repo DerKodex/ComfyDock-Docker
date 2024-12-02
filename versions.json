@@ -1,0 +1,13 @@
+{
+  "images": [
+    {
+      "comfyui_version": "v0.3.4",
+      "comfyui_manager_version": "2.51.9",
+      "cuda_version": "12.6.2",
+      "pytorch_version": "2.5.1",
+      "torchvision_version": "0.20.1",
+      "torchaudio_version": "2.5.1",
+      "pytorch_index_url": "https://download.pytorch.org/whl/cu124"
+    }
+  ]
+}

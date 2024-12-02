@@ -2,20 +2,22 @@
 
 # Directory containing the Dockerfiles
 DOCKERFILES_DIR="dockerfiles"
+IMAGE_NAME="comfyui-env"
 
 build_docker_image() {
     local dockerfile_path=$1
+    echo $dockerfile_path
     # Extract the comfyui version from the parent directory
-    comfyui_version=$(basename "$(dirname "$(dirname "$dockerfile_path")")" | cut -d'-' -f2)
-    cuda_pytorch_dir=$(dirname "$dockerfile_path")
-    cuda_version=$(basename "$cuda_pytorch_dir" | cut -d'-' -f1 | sed 's/cuda//')
-    pytorch_version=$(basename "$cuda_pytorch_dir" | cut -d'-' -f2 | sed 's/pytorch//')
+    comfyui_version=$(basename "$(dirname "$dockerfile_path")" | sed 's/comfyui-//')
+    echo $comfyui_version
+    comfyui_version_dir=$(dirname "$dockerfile_path")
+    echo $comfyui_version_dir
 
     # Construct the image name
-    image_name="comfyui:${comfyui_version}-base-cuda${cuda_version}-pytorch${pytorch_version}"
+    image_name="${IMAGE_NAME}:${comfyui_version}"
 
     # Build the Docker image
-    docker build -t "$image_name" -f "$dockerfile_path" "$cuda_pytorch_dir"
+    docker build -t "$image_name" -f "$dockerfile_path" "$comfyui_version_dir"
 
     echo "Built image: $image_name"
 }
@@ -41,24 +43,22 @@ else
     for dir in "$DOCKERFILES_DIR"/*/; do
         dockerfile_path=$(find "$dir" -name "dockerfile")
         if [ -f "$dockerfile_path" ]; then
-            # Extract the comfyui version, cuda version, and pytorch version
+            # Extract the comfyui version
             comfyui_version=$(basename "$(dirname "$dir")" | cut -d'-' -f2)
-            cuda_version=$(basename "$dir" | cut -d'-' -f1 | sed 's/cuda//')
-            pytorch_version=$(basename "$dir" | cut -d'-' -f2 | sed 's/pytorch//')
 
             build_docker_image "$dockerfile_path"
 
             # Check if this is the largest version
             if [ -z "$largest_version" ] || version_greater "$comfyui_version" "$largest_version"; then
                 largest_version="$comfyui_version"
-                largest_image_name="comfyui:${comfyui_version}-base-cuda${cuda_version}-pytorch${pytorch_version}"
+                largest_image_name="${IMAGE_NAME}:${comfyui_version}"
             fi
         fi
     done
 
     # Tag the largest version as latest
     if [ -n "$largest_image_name" ]; then
-        docker tag "$largest_image_name" "comfyui:latest"
-        echo "Tagged $largest_image_name as comfyui:latest"
+        docker tag "$largest_image_name" "${IMAGE_NAME}:latest"
+        echo "Tagged $largest_image_name as ${IMAGE_NAME}:latest"
     fi
 fi
