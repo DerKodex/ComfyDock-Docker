@@ -23,7 +23,7 @@ jobs:
 
       - name: Identify new dockerfiles
         id: filter
-        uses: dorny/paths-filter@v2
+        uses: dorny/paths-filter@v3
         with:
           filters: |
             dockerfiles:
@@ -31,13 +31,13 @@ jobs:
 
       - name: Debug paths-filter outputs
         run: |
-          echo "Dockerfiles changed: ${{ steps.filter.outputs.dockerfiles_changed }}"
-          echo "Matched Dockerfiles: ${{ steps.filter.outputs.dockerfiles_matched }}"
+          echo "Dockerfiles changed: ${{ steps.filter.outputs.dockerfiles }}"
+          echo "Matched Dockerfiles: ${{ steps.filter.outputs.dockerfiles_files }}"
 
       - name: Build and push new Docker images
-        if: steps.filter.outputs.dockerfiles_changed == 'true'
+        if: steps.filter.outputs.dockerfiles == 'true'
         run: |
-          for dockerfile in ${{ steps.filter.outputs.dockerfiles_matched }}; do
+          for dockerfile in ${{ steps.filter.outputs.dockerfiles_files }}; do
             dir=$(dirname "$dockerfile")
             comfyui_version=$(basename "$dir")
             comfyui_version=${comfyui_version#comfyui-}
