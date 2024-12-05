@@ -50,7 +50,7 @@ jobs:
             # Push the image
             docker push ${{ secrets.DOCKERHUB_USERNAME }}/comfyui-env:${tag}
 
-            # Tag the most recent image as latest
+            # Push the latest image
             docker tag ${{ secrets.DOCKERHUB_USERNAME }}/comfyui-env:${tag} ${{ secrets.DOCKERHUB_USERNAME }}/comfyui-env:latest
             docker push ${{ secrets.DOCKERHUB_USERNAME }}/comfyui-env:latest
           done
