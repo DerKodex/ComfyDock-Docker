@@ -40,13 +40,33 @@ jobs:
         run: |
           for dockerfile in ${{ steps.filter.outputs.dockerfiles_files }}; do
             dir=$(dirname "$dockerfile")
-            comfyui_version=$(basename "$dir")
-            comfyui_version=${comfyui_version#comfyui-}
-            tag="${comfyui_version}"
 
-            # Build the image
-            docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/comfyui-env:${tag} -f "$dockerfile" "$dir"
+            # Remove the leading 'dockerfiles/' to get something like 'comfyui-v0.3.9/cudnn-devel'
+            relpath="${dir#dockerfiles/}"
 
-            # Push the image
-            docker push ${{ secrets.DOCKERHUB_USERNAME }}/comfyui-env:${tag}
+            # Grab everything up to the first slash (the version directory, e.g. 'comfyui-v0.3.9')
+            version_directory=$(echo "$relpath" | cut -d'/' -f1)
+
+            # Drop the 'comfyui-' prefix to get the actual version (e.g. 'v0.3.9')
+            comfyui_version="${version_directory#comfyui-}"
+
+            # Check if there's anything beyond the version directory (e.g. 'cudnn-devel')
+            subdirs=$(echo "$relpath" | cut -d'/' -f2-)
+
+            # Start your tag with just the version
+            tag="$comfyui_version"
+
+            # If there are subdirectories, turn them into dash-delimited suffixes
+            if [ -n "$subdirs" ]; then
+              # Replace any slashes with dashes, resulting in something like 'cudnn-devel'
+              # or 'cudnn-devel-something-else' if there are multiple nested subfolders
+              subdirs_tag=$(echo "$subdirs" | tr '/' '-')
+              tag="${tag}-${subdirs_tag}"
+            fi
+
+            # Build the Docker image
+            docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/comfyui-env:"${tag}" -f "$dockerfile" "$dir"
+
+            # Push the Docker image
+            docker push ${{ secrets.DOCKERHUB_USERNAME }}/comfyui-env:"${tag}"
           done
