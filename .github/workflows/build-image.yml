@@ -52,14 +52,16 @@ jobs:
 
             # Check if there's anything beyond the version directory (e.g. 'cudnn-devel')
             subdirs=$(echo "$relpath" | cut -d'/' -f2-)
+            if [ "$subdirs" = "$version_directory" ]; then
+              subdirs=""
+            fi
 
             # Start your tag with just the version
             tag="$comfyui_version"
 
-            # If there are subdirectories, turn them into dash-delimited suffixes
+            # Append subdirectories to the tag only if they exist
             if [ -n "$subdirs" ]; then
-              # Replace any slashes with dashes, resulting in something like 'cudnn-devel'
-              # or 'cudnn-devel-something-else' if there are multiple nested subfolders
+              # Replace any slashes with dashes
               subdirs_tag=$(echo "$subdirs" | tr '/' '-')
               tag="${tag}-${subdirs_tag}"
             fi
