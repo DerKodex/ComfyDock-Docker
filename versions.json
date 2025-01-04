@@ -27,7 +27,7 @@
     {
       "comfyui_version": "v0.3.9",
       "comfyui_manager_version": "2.55.5",
-      "cuda_version": "12.4.0",
+      "cuda_version": "12.4.1",
       "flavor": "runtime",
       "pytorch_version": "2.5.1",
       "torchvision_version": "0.20.1",
@@ -39,7 +39,7 @@
     {
       "comfyui_version": "v0.3.9",
       "comfyui_manager_version": "2.55.5",
-      "cuda_version": "12.4.0",
+      "cuda_version": "12.4.1",
       "flavor": "cudnn-devel",
       "pytorch_version": "2.5.1",
       "torchvision_version": "0.20.1",
@@ -51,7 +51,7 @@
     {
       "comfyui_version": "v0.3.4",
       "comfyui_manager_version": "2.55.5",
-      "cuda_version": "12.4.0",
+      "cuda_version": "12.4.1",
       "flavor": "runtime",
       "pytorch_version": "2.5.1",
       "torchvision_version": "0.20.1",
@@ -63,7 +63,7 @@
     {
       "comfyui_version": "v0.3.4",
       "comfyui_manager_version": "2.55.5",
-      "cuda_version": "12.4.0",
+      "cuda_version": "12.4.1",
       "flavor": "cudnn-devel",
       "pytorch_version": "2.5.1",
       "torchvision_version": "0.20.1",

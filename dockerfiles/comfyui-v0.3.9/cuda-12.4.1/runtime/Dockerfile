@@ -1,8 +1,8 @@
-FROM nvidia/cuda:12.4.0-runtime-ubuntu22.04
+FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
 
 # Labels
 LABEL comfui_version="v0.3.9"
-LABEL cuda_version="12.4.0"
+LABEL cuda_version="12.4.1"
 LABEL pytorch_version="2.5.1"
 LABEL comfyui_manager_version="2.55.5"
 
