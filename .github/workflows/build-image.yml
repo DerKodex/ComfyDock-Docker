@@ -28,7 +28,7 @@ jobs:
           list-files: shell
           filters: |
             dockerfiles:
-              - 'dockerfiles/**/dockerfile'
+              - 'dockerfiles/**/Dockerfile'
 
       - name: Debug paths-filter outputs
         run: |
