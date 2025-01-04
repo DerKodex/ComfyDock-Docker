@@ -1,9 +1,10 @@
-FROM nvidia/cuda:12.6.3-cudnn-devel-ubuntu22.04
+FROM nvidia/cuda:12.4.0-runtime-ubuntu22.04
 
 # Labels
-LABEL comfui_version="0.3.4"
-LABEL cuda_version="12.6.3"
+LABEL comfui_version="v0.3.9"
+LABEL cuda_version="12.4.0"
 LABEL pytorch_version="2.5.1"
+LABEL comfyui_manager_version="2.55.5"
 
 # Set working directory
 WORKDIR /app
@@ -43,7 +44,10 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 # Install Python dependencies
 RUN uv pip install --upgrade pip && \
-    uv pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124 && \
+    uv pip install torch==2.5.1 \
+        torchvision==0.20.1 \
+        torchaudio==2.5.1 \
+        --index-url https://download.pytorch.org/whl/cu124 && \
     uv pip install -U xformers==0.0.28.post3
 
 # Signal Python we're in Docker
@@ -51,14 +55,16 @@ ENV WINDOW_BACKEND="headless"
 ENV DOCKER_RUNTIME="1"
 
 # Clone and set up ComfyUI
-RUN git clone --branch v0.3.4 https://github.com/comfyanonymous/ComfyUI.git
+RUN git clone --branch v0.3.9 https://github.com/comfyanonymous/ComfyUI.git
 
 # Set working directory for ComfyUI
 WORKDIR /app/ComfyUI
 
 # Install ComfyUI dependencies and ComfyUI-Manager
 RUN uv pip install -r requirements.txt && \
-    git clone --branch 2.51.9 https://github.com/ltdrdata/ComfyUI-Manager.git /app/ComfyUI/custom_nodes/ComfyUI-Manager && \
+    git clone --branch 2.55.5 \
+        https://github.com/ltdrdata/ComfyUI-Manager.git \
+        /app/ComfyUI/custom_nodes/ComfyUI-Manager && \
     uv pip install -r /app/ComfyUI/custom_nodes/ComfyUI-Manager/requirements.txt && \
     uv cache clean
 
