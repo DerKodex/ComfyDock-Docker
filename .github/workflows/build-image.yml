@@ -66,9 +66,15 @@ jobs:
               tag="${tag}-${subdirs_tag}"
             fi
 
-            # Build the Docker image
-            docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/comfyui-env:"${tag}" -f "$dockerfile" "$dir"
+            echo "Building Docker image with tag: ${tag}"
+            docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/comfyui-env:"${tag}" -f "$dockerfile" "$dir" || {
+              echo "Docker build failed for tag: ${tag}. Skipping..."
+              continue
+            }
 
-            # Push the Docker image
-            docker push ${{ secrets.DOCKERHUB_USERNAME }}/comfyui-env:"${tag}"
+            echo "Pushing Docker image with tag: ${tag}"
+            docker push ${{ secrets.DOCKERHUB_USERNAME }}/comfyui-env:"${tag}" || {
+              echo "Docker push failed for tag: ${tag}. Skipping..."
+              continue
+            }
           done

@@ -75,4 +75,3 @@ EXPOSE 8188
 ENTRYPOINT ["uv", "run", "python", "/app/ComfyUI/main.py", "--listen", "0.0.0.0"]
 CMD ["--port", "8188"]
 
-
