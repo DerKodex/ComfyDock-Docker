@@ -74,3 +74,5 @@ EXPOSE 8188
 # Set entrypoint with required arguments
 ENTRYPOINT ["uv", "run", "python", "/app/ComfyUI/main.py", "--listen", "0.0.0.0"]
 CMD ["--port", "8188"]
+
+

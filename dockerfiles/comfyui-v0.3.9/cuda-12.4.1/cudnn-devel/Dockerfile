@@ -1,8 +1,8 @@
-FROM nvidia/cuda:12.4.0-runtime-ubuntu22.04
+FROM nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
 
 # Labels
-LABEL comfui_version="v0.3.4"
-LABEL cuda_version="12.4.0"
+LABEL comfui_version="v0.3.9"
+LABEL cuda_version="12.4.1"
 LABEL pytorch_version="2.5.1"
 LABEL comfyui_manager_version="2.55.5"
 
@@ -55,7 +55,7 @@ ENV WINDOW_BACKEND="headless"
 ENV DOCKER_RUNTIME="1"
 
 # Clone and set up ComfyUI
-RUN git clone --branch v0.3.4 https://github.com/comfyanonymous/ComfyUI.git
+RUN git clone --branch v0.3.9 https://github.com/comfyanonymous/ComfyUI.git
 
 # Set working directory for ComfyUI
 WORKDIR /app/ComfyUI
