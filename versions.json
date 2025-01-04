@@ -1,12 +1,75 @@
 {
-  "images": [
+  "docker_images": [
     {
-      "comfyui_version": "v0.3.4",
-      "comfyui_manager_version": "2.51.9",
+      "comfyui_version": "v0.3.9",
+      "comfyui_manager_version": "2.55.5",
       "cuda_version": "12.6.2",
+      "flavor": "runtime",
       "pytorch_version": "2.5.1",
       "torchvision_version": "0.20.1",
       "torchaudio_version": "2.5.1",
+      "python_version": "3.12",
+      "xformers_version": "0.0.28.post3",
+      "pytorch_index_url": "https://download.pytorch.org/whl/cu124"
+    },
+    {
+      "comfyui_version": "v0.3.9",
+      "comfyui_manager_version": "2.55.5",
+      "cuda_version": "12.6.2",
+      "flavor": "cudnn-devel",
+      "pytorch_version": "2.5.1",
+      "torchvision_version": "0.20.1",
+      "torchaudio_version": "2.5.1",
+      "python_version": "3.12",
+      "xformers_version": "0.0.28.post3",
+      "pytorch_index_url": "https://download.pytorch.org/whl/cu124"
+    },
+    {
+      "comfyui_version": "v0.3.9",
+      "comfyui_manager_version": "2.55.5",
+      "cuda_version": "12.4.0",
+      "flavor": "runtime",
+      "pytorch_version": "2.5.1",
+      "torchvision_version": "0.20.1",
+      "torchaudio_version": "2.5.1",
+      "python_version": "3.12",
+      "xformers_version": "0.0.28.post3",
+      "pytorch_index_url": "https://download.pytorch.org/whl/cu124"
+    },
+    {
+      "comfyui_version": "v0.3.9",
+      "comfyui_manager_version": "2.55.5",
+      "cuda_version": "12.4.0",
+      "flavor": "cudnn-devel",
+      "pytorch_version": "2.5.1",
+      "torchvision_version": "0.20.1",
+      "torchaudio_version": "2.5.1",
+      "python_version": "3.12",
+      "xformers_version": "0.0.28.post3",
+      "pytorch_index_url": "https://download.pytorch.org/whl/cu124"
+    },
+    {
+      "comfyui_version": "v0.3.4",
+      "comfyui_manager_version": "2.55.5",
+      "cuda_version": "12.4.0",
+      "flavor": "runtime",
+      "pytorch_version": "2.5.1",
+      "torchvision_version": "0.20.1",
+      "torchaudio_version": "2.5.1",
+      "python_version": "3.12",
+      "xformers_version": "0.0.28.post3",
+      "pytorch_index_url": "https://download.pytorch.org/whl/cu124"
+    },
+    {
+      "comfyui_version": "v0.3.4",
+      "comfyui_manager_version": "2.55.5",
+      "cuda_version": "12.4.0",
+      "flavor": "cudnn-devel",
+      "pytorch_version": "2.5.1",
+      "torchvision_version": "0.20.1",
+      "torchaudio_version": "2.5.1",
+      "python_version": "3.12",
+      "xformers_version": "0.0.28.post3",
       "pytorch_index_url": "https://download.pytorch.org/whl/cu124"
     }
   ]
