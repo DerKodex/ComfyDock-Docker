@@ -21,15 +21,16 @@ jobs:
 
     # We define our matrix of CUDA & Python versions
     strategy:
+      fail-fast: false
       matrix:
         os: [linux]
-        python-version: [3.12]
-        cuda-version: [12.4]
+        python-version: ["3.12"]
+        cuda-version: ["12.4"]
+        pytorch-version: ["stable"]
         include:
           - os: linux
             runner_label: [self-hosted, Linux]
             flags: ""
-      fail-fast: false
 
     runs-on: ${{ matrix.runner_label }}
     steps:
@@ -77,9 +78,9 @@ jobs:
           COMFYUI_VERSION="${COMFYUI_VERSION}"
           PY="${{ matrix.python-version }}"
           CU="${{ matrix.cuda-version }}"
-
+          PT="${{ matrix.pytorch-version }}"
           # Our Docker tag
-          IMAGE_TAG="akatz-ai/comfydock-env:${COMFYUI_VERSION}-py${PY}-cuda${CU}"
+          IMAGE_TAG="akatz-ai/comfydock-env:${COMFYUI_VERSION}-py${PY}-cuda${CU}-pt${PT}"
 
           echo "Building and pushing Docker image: $IMAGE_TAG"
 
@@ -94,7 +95,7 @@ jobs:
             --build-arg COMFYUI_VERSION="$COMFYUI_VERSION" \
             --build-arg CUDA_VERSION="$CUDA_ARG" \
             --build-arg PYTHON_VERSION="$PY" \
-            --build-arg PYTORCH_VERSION="stable" \
+            --build-arg PYTORCH_VERSION="$PT" \
             -t "$IMAGE_TAG" .
 
           docker push "$IMAGE_TAG"
