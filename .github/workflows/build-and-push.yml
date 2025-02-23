@@ -61,6 +61,7 @@ jobs:
             # fallback to "master" or something. Or rely on the step that fetches the latest release if you do it.
             echo "No comfyui_version input provided; defaulting to 'master'"
             echo "COMFYUI_VERSION=master" >> $GITHUB_ENV
+          fi
 
       # 4. Log in to Docker Hub so we can push images
       - name: Log in to DockerHub
