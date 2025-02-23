@@ -73,13 +73,13 @@ jobs:
       - name: Build and Push Docker Images
         run: |
           # We'll define the Docker tags:
-          # e.g. akatz-ai/comfydock-env:${COMFYUI_VERSION}-py3.10-cuda11.8
+          # e.g. akatzai/comfydock-env:${COMFYUI_VERSION}-py3.10-cuda11.8
           COMFYUI_VERSION="${COMFYUI_VERSION}"
           PY="${{ matrix.python-version }}"
           CU="${{ matrix.cuda-version }}"
           PT="${{ matrix.pytorch-version }}"
           # Our Docker tag
-          IMAGE_TAG="akatz-ai/comfydock-env:${COMFYUI_VERSION}-py${PY}-cuda${CU}-pt${PT}"
+          IMAGE_TAG="akatzai/comfydock-env:${COMFYUI_VERSION}-py${PY}-cuda${CU}-pt${PT}"
 
           echo "Building and pushing Docker image: $IMAGE_TAG"
 
