@@ -66,7 +66,7 @@ jobs:
       # 4. Log in to Docker Hub so we can push images
       - name: Docker login
         run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | \
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | \
             docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       # 5. Build & push images for each matrix entry
