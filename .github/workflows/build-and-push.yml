@@ -1,0 +1,102 @@
+name: Build and Push ComfyDock Images
+
+on:
+  # Manual trigger allows specifying a ComfyUI version to build.
+  workflow_dispatch:
+    inputs:
+      comfyui_version:
+        description: "ComfyUI version or branch (e.g. master, 1.3.0, etc.)"
+        required: false
+        default: "master"
+
+  # Optional: run daily to check if there's a new ComfyUI release
+  schedule:
+    - cron: '30 1 * * *'  # Runs once a day at 01:30 UTC
+
+jobs:
+  build-and-push:
+    # Skip scheduled runs on non-default branches
+    if: github.event_name != 'schedule' || github.ref == 'refs/heads/master'
+
+    # We define our matrix of CUDA & Python versions
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [linux]
+        python-version: ["3.12"]
+        cuda-version: ["12.4"]
+        pytorch-version: ["stable"]
+        include:
+          - os: linux
+            runner_label: [self-hosted, Linux]
+            flags: ""
+
+    runs-on: ${{ matrix.runner_label }}
+    steps:
+      # 1. Check out this repo (your Dockerfile should be here)
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # 2. (Optional) If you want to auto-detect the latest ComfyUI release when on schedule
+      #    we can do something like fetch the GitHub API. If you only rely on manual input, skip this.
+      - name: Get Latest ComfyUI Release (Optional)
+        if: ${{ github.event_name == 'schedule' }}
+        run: |
+          # Example: Hit the ComfyUI releases API and parse the latest (non-prerelease) version
+          # Then set it as an output for the next step
+          LATEST=$(curl -s https://api.github.com/repos/comfyanonymous/ComfyUI/releases \
+            | jq -r '[.[] | select(.prerelease==false)] | first | .tag_name')
+          echo "latest comfyui release: $LATEST"
+          echo "COMFYUI_VERSION=$LATEST" >> $GITHUB_ENV
+
+      # 3. Determine the ComfyUI version to use in the build
+      #    (It could come from workflow_dispatch input or from our daily check above)
+      - name: Set ComfyUI Version
+        run: |
+          if [ -n "${{ github.event.inputs.comfyui_version }}" ]; then
+            echo "Using user-specified ComfyUI version: ${{ github.event.inputs.comfyui_version }}"
+            echo "COMFYUI_VERSION=${{ github.event.inputs.comfyui_version }}" >> $GITHUB_ENV
+          else
+            # If no user input was provided (like a schedule run) and we didn't do the optional step above
+            # fallback to "master" or something. Or rely on the step that fetches the latest release if you do it.
+            echo "No comfyui_version input provided; defaulting to 'master'"
+            echo "COMFYUI_VERSION=master" >> $GITHUB_ENV
+
+      # 4. Log in to Docker Hub so we can push images
+      - name: Log in to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 5. Build & push images for each matrix entry
+      - name: Build and Push Docker Images
+        run: |
+          # We'll define the Docker tags:
+          # e.g. akatz-ai/comfydock-env:${COMFYUI_VERSION}-py3.10-cuda11.8
+          COMFYUI_VERSION="${COMFYUI_VERSION}"
+          PY="${{ matrix.python-version }}"
+          CU="${{ matrix.cuda-version }}"
+          PT="${{ matrix.pytorch-version }}"
+          # Our Docker tag
+          IMAGE_TAG="akatz-ai/comfydock-env:${COMFYUI_VERSION}-py${PY}-cuda${CU}-pt${PT}"
+
+          echo "Building and pushing Docker image: $IMAGE_TAG"
+
+          # Convert, e.g., 11.8 -> cu118 if needed for your build arg
+          # If your Dockerfile expects e.g. ARG CUDA_VERSION=cu124, 
+          # we can do that easily by just doing "cu${CU//.}" if you want "cu118"
+          # or just "cu${CU}" if "cu11.8" is okay. We'll keep it simpler by removing the dot:
+          CU_STRIPPED="${CU//./}"  # e.g. "118", "124", "126"
+          CUDA_ARG="cu${CU_STRIPPED}"
+
+          docker build \
+            --build-arg COMFYUI_VERSION="$COMFYUI_VERSION" \
+            --build-arg CUDA_VERSION="$CUDA_ARG" \
+            --build-arg PYTHON_VERSION="$PY" \
+            --build-arg PYTORCH_VERSION="$PT" \
+            -t "$IMAGE_TAG" .
+
+          docker push "$IMAGE_TAG"
+        env:
+          COMFYUI_VERSION: ${{ env.COMFYUI_VERSION }}  # from previous step
