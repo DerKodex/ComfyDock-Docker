@@ -11,7 +11,7 @@ on:
 
   # Daily schedule
   schedule:
-    - cron: '30 1 * * *'  # Runs once a day at 01:30 UTC
+    - cron: '30 11 * * *'  # Runs once a day at 11:30 UTC = 3:30 AM PST
 
 jobs:
   build-and-push:
