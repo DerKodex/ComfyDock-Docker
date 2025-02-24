@@ -18,7 +18,7 @@ jobs:
     runs-on: [self-hosted, Linux]
 
     # Only skip the scheduled build if on a non-default branch
-    if: github.event_name != 'schedule' || github.ref == 'refs/heads/master'
+    if: github.event_name != 'schedule' || github.ref == 'refs/heads/main'
 
     # Define your version combos here in env so you only edit once
     env:
