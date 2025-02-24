@@ -119,3 +119,26 @@ jobs:
           done
         env:
           COMFYUI_VERSION: ${{ env.COMFYUI_VERSION }}
+
+      - name: Cleanup local images
+        # Only run this if we actually built images (so skip if schedule & ALL_BUILT == "true")
+        if: ${{ github.event_name != 'schedule' || steps.check_tags.outputs.ALL_BUILT != 'true' }}
+        run: |
+          echo "Cleaning up local Docker images for ComfyUI_VERSION=${COMFYUI_VERSION}"
+
+          for PY in $PYTHON_VERSIONS; do
+            for CU in $CUDA_VERSIONS; do
+              for PT in $PYTORCH_VERSIONS; do
+                TAG="${COMFYUI_VERSION}-py${PY}-cuda${CU}-pt${PT}"
+                IMAGE_NAME="${DOCKERHUB_USERNAME}/comfydock-env:${TAG}"
+
+                echo "Removing local image: $IMAGE_NAME"
+                docker rmi -f "$IMAGE_NAME" || true
+              done
+            done
+          done
+
+          # If you also want to remove dangling images/layers not associated with any tag:
+          docker image prune -af
+        env:
+          COMFYUI_VERSION: ${{ env.COMFYUI_VERSION }}
