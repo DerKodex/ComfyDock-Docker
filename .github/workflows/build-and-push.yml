@@ -22,16 +22,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [linux]
+        # os: [linux]
         python-version: ["3.12"]
         cuda-version: ["12.4"]
         pytorch-version: ["stable"]
-        include:
-          - os: linux
-            runner_label: [self-hosted, Linux]
-            flags: ""
+        # include:
+        #   - os: linux
+        #     runner_label: [self-hosted, Linux]
+        #     flags: ""
 
-    runs-on: ${{ matrix.runner_label }}
+    # runs-on: ${{ matrix.runner_label }}
+    runs-on: ubuntu-latest
     steps:
       # 1. Check out this repo (your Dockerfile should be here)
       - name: Checkout
@@ -63,11 +64,12 @@ jobs:
             echo "COMFYUI_VERSION=master" >> $GITHUB_ENV
           fi
 
-      # 4. Log in to Docker Hub so we can push images
-      - name: Docker login
-        run: |
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | \
-            docker login -u "${{ vars.DOCKERHUB_USERNAME }}" --password-stdin
+      # 4. Login to Docker Hub
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       # 5. Build & push images for each matrix entry
       - name: Build and Push Docker Images
