@@ -7,7 +7,7 @@ PYTHON_VERSION=${PYTHON_VERSION:-"3.12"}
 CUDA_VERSION=${CUDA_VERSION:-"12.4"}
 PYTORCH_VERSION=${PYTORCH_VERSION:-"stable"}
 TAG_NAME="local"
-
+DOCKERFILE=${DOCKERFILE:-"Dockerfile"}
 # Help function
 function show_help {
     echo "Build a local ComfyDock Docker image"
@@ -20,6 +20,7 @@ function show_help {
     echo "  -g, --cuda VERSION      CUDA version (default: 12.4)"
     echo "  -t, --pytorch VERSION   PyTorch version (default: stable)"
     echo "  -n, --name TAG          Custom tag name (default: local)"
+    echo "  -f, --file FILE         Dockerfile name (default: Dockerfile)"
     echo "  -h, --help              Show this help"
     echo ""
     echo "Example:"
@@ -48,6 +49,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -n|--name)
             TAG_NAME="$2"
+            shift 2
+            ;;
+        -f|--file)
+            DOCKERFILE="$2"
             shift 2
             ;;
         -h|--help)
@@ -88,7 +93,7 @@ docker build \
   --build-arg CUDA_VERSION="${CUDA_ARG}" \
   --build-arg PYTHON_VERSION="${PYTHON_VERSION}" \
   --build-arg PYTORCH_VERSION="${PYTORCH_VERSION}" \
-  -t "$IMAGE_NAME" .
+  -t "$IMAGE_NAME" -f "$DOCKERFILE" .
 
 echo ""
 echo "Build complete! Your image is available as: $IMAGE_NAME"
