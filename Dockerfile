@@ -75,7 +75,8 @@ RUN --mount=type=cache,target=/home/comfy/.cache,uid=1024,gid=1024 \
         uv pip install --pre torch torchvision torchaudio \
             --index-url "https://download.pytorch.org/whl/nightly/${CUDA_VERSION}"; \
     fi && \
-    # uv pip install -U xformers --index-url "https://download.pytorch.org/whl/${CUDA_VERSION}" && \
+    uv pip install -U xformers --index-url "https://download.pytorch.org/whl/${CUDA_VERSION}" && \
+    uv pip install sageattention && \
     uv pip install --upgrade pip
 
 # 10) Clone ComfyUI and install its dependencies (still as comfy).
