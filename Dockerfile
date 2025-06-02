@@ -81,7 +81,30 @@ RUN --mount=type=cache,target=/home/comfy/.cache,uid=1024,gid=1024 \
 
 # 10) Clone ComfyUI and install its dependencies (still as comfy).
 ARG COMFYUI_VERSION=master
-RUN umask 000 && git clone --branch "${COMFYUI_VERSION}" https://github.com/comfyanonymous/ComfyUI.git /app/ComfyUI
+RUN umask 000 && \
+    git clone https://github.com/comfyanonymous/ComfyUI.git /app/ComfyUI && \
+    cd /app/ComfyUI && \
+    # Fetch all branches and tags
+    git fetch --all --tags && \
+    # Check if COMFYUI_VERSION is a tag or branch
+    if git show-ref --verify --quiet "refs/tags/${COMFYUI_VERSION}"; then \
+        echo "Checking out tag: ${COMFYUI_VERSION}"; \
+        git checkout "tags/${COMFYUI_VERSION}"; \
+        # Create a local master branch at this commit
+        git checkout -b master; \
+    elif git show-ref --verify --quiet "refs/remotes/origin/${COMFYUI_VERSION}"; then \
+        echo "Checking out branch: ${COMFYUI_VERSION}"; \
+        git checkout -b "${COMFYUI_VERSION}" "origin/${COMFYUI_VERSION}"; \
+        # If it's not already master, also create master at this commit
+        if [ "${COMFYUI_VERSION}" != "master" ]; then \
+            git branch master; \
+        fi; \
+    else \
+        echo "Version ${COMFYUI_VERSION} not found, checking out master"; \
+        git checkout -b master origin/master; \
+    fi && \
+    # Set upstream for the current branch
+    git branch --set-upstream-to=origin/master master || true
 
 WORKDIR /app/ComfyUI
 RUN --mount=type=cache,target=/home/comfy/.cache,uid=1024,gid=1024 \
