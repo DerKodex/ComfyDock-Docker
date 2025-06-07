@@ -8,6 +8,9 @@ Docker images built and pushed to Dockerhub and can be [found here](https://hub.
 
 **Note:** I am not a security expert and am open to Issues and PRs that can help to harden the Images included in this repo.
 
+## Updates
+(04/16/2025): Removed CUDA 11.8 support for new images (Comfy versions v0.3.40+) due to incompatibilities with xformers and pytorch. Added full CUDA 12.8 support.
+
 ## Testing
 
 To build the image locally, run the following command:
