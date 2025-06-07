@@ -58,13 +58,13 @@ jobs:
       fail-fast: false # Prevent other jobs from stopping if one fails
       matrix:
         python: ["3.10", "3.12"]      # Standard Python versions
-        cuda: ["11.8", "12.4"]       # Standard CUDA versions
+        cuda: ["12.4", "12.8"]       # Standard CUDA versions
         pytorch: ["stable"]          # Standard PyTorch versions
         include:
           # Add your unique combination here
-          - python: "3.12"
-            cuda: "12.8"
-            pytorch: "stable"
+          # - python: "3.12"
+          #   cuda: "12.8"
+          #   pytorch: "stable"
           # Add more unique combinations as needed
           # - python: "3.x"
           #   cuda: "1x.y"
