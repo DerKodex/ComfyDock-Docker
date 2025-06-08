@@ -60,7 +60,7 @@ jobs:
         python: ["3.10", "3.12"]      # Standard Python versions
         cuda: ["12.4", "12.8"]       # Standard CUDA versions
         pytorch: ["stable"]          # Standard PyTorch versions
-        include:
+        # include:
           # Add your unique combination here
           # - python: "3.12"
           #   cuda: "12.8"
