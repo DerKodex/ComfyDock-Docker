@@ -130,6 +130,3 @@ RUN umask 000 && sudo chmod +x /usr/local/bin/entrypoint.sh
 
 # 14) Our default entrypoint is that script
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-
-# 15) Default CMD just runs ComfyUI on 0.0.0.0:8188
-CMD ["--port", "8188"]

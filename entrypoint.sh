@@ -15,4 +15,4 @@ fi
 
 # Now drop privileges so we do *not* run as root:
 echo ">> Switching to user 'comfy'"
-exec su comfy -c "umask 000 && /app/.venv/bin/python /app/ComfyUI/main.py --listen 0.0.0.0 $*"
+exec su comfy -c "umask 000 && /app/.venv/bin/python /app/ComfyUI/main.py --listen 0.0.0.0 --port 8188 $*"
