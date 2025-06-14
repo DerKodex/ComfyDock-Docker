@@ -1,5 +1,14 @@
 name: Build and Push ComfyDock Images
 
+# Tag Format: {comfyui_version}-{image_version}-py{python}-cuda{cuda}-pt{pytorch}
+# Examples:
+#   - v1.3.0-v1.0.0-py3.12-cuda12.4-ptstable  (ComfyUI v1.3.0, first image version)
+#   - v1.3.0-v1.1.0-py3.12-cuda12.4-ptstable  (ComfyUI v1.3.0, updated dockerfile)
+#   - master-v1.0.0-py3.12-cuda12.4-ptstable  (ComfyUI master branch)
+#
+# Image Version: Increment this when making changes to the Dockerfile, dependencies,
+# or security fixes without waiting for a new ComfyUI release.
+
 on:
   # Manual trigger
   workflow_dispatch:
@@ -8,10 +17,18 @@ on:
         description: "ComfyUI version or branch (e.g. master, 1.3.0, etc.)"
         required: false
         default: "master"
+      image_version:
+        description: "Image version (e.g. v1.0.0, v1.1.0) - increments for dockerfile changes"
+        required: false
+      force_build:
+        description: "Force build even if tag exists"
+        required: false
+        default: false
+        type: boolean
 
-  # Daily schedule
+  # Weekly schedule (every week on Monday)
   schedule:
-    - cron: '30 11 * * *'  # Runs once a day at 11:30 UTC = 3:30 AM PST
+    - cron: '30 11 * * 1'  # Runs every Monday at 11:30 UTC = 3:30 AM PST
 
 jobs:
   # New job to determine the ComfyUI version once
@@ -19,7 +36,11 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       comfyui_version: ${{ steps.set_version.outputs.comfyui_version }}
+      image_version: ${{ steps.set_version.outputs.image_version }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
       - name: Get Latest ComfyUI Release (if scheduled)
         id: get_latest
         if: ${{ github.event_name == 'schedule' }}
@@ -28,21 +49,39 @@ jobs:
             | jq -r '[.[] | select(.prerelease==false)] | first | .tag_name')
           echo "latest_version=$LATEST" >> $GITHUB_OUTPUT
 
-      - name: Set ComfyUI Version
+      - name: Set ComfyUI Version and Image Version
         id: set_version
         run: |
-          VERSION=""
+          # Determine ComfyUI version
+          COMFYUI_VERSION=""
           if [ -n "${{ github.event.inputs.comfyui_version }}" ]; then
-            VERSION="${{ github.event.inputs.comfyui_version }}"
-            echo "Using user-specified ComfyUI version: $VERSION"
+            COMFYUI_VERSION="${{ github.event.inputs.comfyui_version }}"
+            echo "Using user-specified ComfyUI version: $COMFYUI_VERSION"
           elif [ "${{ github.event_name }}" == "schedule" ] && [ -n "${{ steps.get_latest.outputs.latest_version }}" ]; then
-            VERSION="${{ steps.get_latest.outputs.latest_version }}"
-            echo "Using latest ComfyUI release: $VERSION"
+            COMFYUI_VERSION="${{ steps.get_latest.outputs.latest_version }}"
+            echo "Using latest ComfyUI release: $COMFYUI_VERSION"
           else
-            VERSION="master"
-            echo "Using default ComfyUI version: $VERSION"
+            COMFYUI_VERSION="master"
+            echo "Using default ComfyUI version: $COMFYUI_VERSION"
           fi
-          echo "comfyui_version=$VERSION" >> $GITHUB_OUTPUT
+          echo "comfyui_version=$COMFYUI_VERSION" >> $GITHUB_OUTPUT
+          
+          # Determine image version
+          IMAGE_VERSION=""
+          if [ -n "${{ github.event.inputs.image_version }}" ]; then
+            IMAGE_VERSION="${{ github.event.inputs.image_version }}"
+            echo "Using user-specified image version: $IMAGE_VERSION"
+          else
+            # Read current version from VERSION file
+            if [ -f "VERSION" ]; then
+              IMAGE_VERSION=$(cat VERSION | tr -d '[:space:]')
+              echo "Using image version from VERSION file: $IMAGE_VERSION"
+            else
+              IMAGE_VERSION="v1.0.0"
+              echo "VERSION file not found, using default: $IMAGE_VERSION"
+            fi
+          fi
+          echo "image_version=$IMAGE_VERSION" >> $GITHUB_OUTPUT
 
   build-and-push:
     needs: determine-version # Wait for the version to be determined
@@ -73,7 +112,7 @@ jobs:
     # Env vars available to all matrix jobs
     env:
       DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
-      # COMFYUI_VERSION is now accessed via needs.determine-version.outputs.comfyui_version
+      # COMFYUI_VERSION and IMAGE_VERSION are now accessed via needs.determine-version.outputs
 
     steps:
       - name: Checkout
@@ -82,14 +121,15 @@ jobs:
       # Check if the specific tag for THIS matrix combination exists
       - name: Check if tag already built
         id: check_tag
-        # Only run the check for scheduled events
-        if: ${{ github.event_name == 'schedule' }}
+        # Only run the check for scheduled events (unless force_build is true)
+        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.force_build != 'true') }}
         run: |
           PY="${{ matrix.python }}"
           CU="${{ matrix.cuda }}"
           PT="${{ matrix.pytorch }}"
           COMFYUI_VERSION="${{ needs.determine-version.outputs.comfyui_version }}"
-          TAG_NAME="${COMFYUI_VERSION}-py${PY}-cuda${CU}-pt${PT}"
+          IMAGE_VERSION="${{ needs.determine-version.outputs.image_version }}"
+          TAG_NAME="${COMFYUI_VERSION}-${IMAGE_VERSION}-py${PY}-cuda${CU}-pt${PT}"
 
           echo "Checking Docker Hub for tag: $TAG_NAME for user ${DOCKERHUB_USERNAME}"
           # Check if tag exists by trying to fetch its manifest
@@ -104,29 +144,30 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
-      # Login - skip if scheduled and tag already exists
+      # Login - skip if scheduled and tag already exists (unless force_build)
       - name: Login to Docker Hub
-        if: ${{ github.event_name != 'schedule' || steps.check_tag.outputs.exists != 'true' }}
+        if: ${{ github.event.inputs.force_build == 'true' || github.event_name != 'schedule' || steps.check_tag.outputs.exists != 'true' }}
         uses: docker/login-action@v2
         with:
           username: ${{ env.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }} # Use secret directly
 
-      # Build & push - skip if scheduled and tag already exists
+      # Build & push - skip if scheduled and tag already exists (unless force_build)
       - name: Build, Push, and Clean up
-        if: ${{ github.event_name != 'schedule' || steps.check_tag.outputs.exists != 'true' }}
+        if: ${{ github.event.inputs.force_build == 'true' || github.event_name != 'schedule' || steps.check_tag.outputs.exists != 'true' }}
         run: |
           # Get versions from matrix context and needs context
           PY="${{ matrix.python }}"
           CU="${{ matrix.cuda }}"
           PT="${{ matrix.pytorch }}"
           COMFYUI_VERSION="${{ needs.determine-version.outputs.comfyui_version }}"
+          IMAGE_VERSION="${{ needs.determine-version.outputs.image_version }}"
 
-          TAG="${COMFYUI_VERSION}-py${PY}-cuda${CU}-pt${PT}"
+          TAG="${COMFYUI_VERSION}-${IMAGE_VERSION}-py${PY}-cuda${CU}-pt${PT}"
           IMAGE_NAME="${DOCKERHUB_USERNAME}/comfydock-env:${TAG}"
 
           echo "Processing image: $IMAGE_NAME"
-          echo "Using Python: $PY, CUDA: $CU, PyTorch: $PT, ComfyUI: $COMFYUI_VERSION"
+          echo "Using ComfyUI: $COMFYUI_VERSION, Image: $IMAGE_VERSION, Python: $PY, CUDA: $CU, PyTorch: $PT"
 
           # Convert CUDA version format (e.g., "12.4" to "cu124")
           CU_STRIPPED="${CU//./}"
