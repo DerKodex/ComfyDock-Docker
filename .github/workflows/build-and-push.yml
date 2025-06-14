@@ -1,10 +1,10 @@
 name: Build and Push ComfyDock Images
 
-# Tag Format: {comfyui_version}-{image_version}-py{python}-cuda{cuda}-pt{pytorch}
+# Tag Format: {comfyui_version}-py{python}-cuda{cuda}-pt{pytorch}-{image_version}
 # Examples:
-#   - v1.3.0-v1.0.0-py3.12-cuda12.4-ptstable  (ComfyUI v1.3.0, first image version)
-#   - v1.3.0-v1.1.0-py3.12-cuda12.4-ptstable  (ComfyUI v1.3.0, updated dockerfile)
-#   - master-v1.0.0-py3.12-cuda12.4-ptstable  (ComfyUI master branch)
+#   - v1.3.0-py3.12-cuda12.4-ptstable-v1.0.0  (ComfyUI v1.3.0, first image version)
+#   - v1.3.0-py3.12-cuda12.4-ptstable-v1.1.0  (ComfyUI v1.3.0, updated dockerfile)
+#   - master-py3.12-cuda12.4-ptstable-v1.0.0  (ComfyUI master branch)
 #
 # Image Version: Increment this when making changes to the Dockerfile, dependencies,
 # or security fixes without waiting for a new ComfyUI release.
@@ -129,7 +129,7 @@ jobs:
           PT="${{ matrix.pytorch }}"
           COMFYUI_VERSION="${{ needs.determine-version.outputs.comfyui_version }}"
           IMAGE_VERSION="${{ needs.determine-version.outputs.image_version }}"
-          TAG_NAME="${COMFYUI_VERSION}-${IMAGE_VERSION}-py${PY}-cuda${CU}-pt${PT}"
+          TAG_NAME="${COMFYUI_VERSION}-py${PY}-cuda${CU}-pt${PT}-${IMAGE_VERSION}"
 
           echo "Checking Docker Hub for tag: $TAG_NAME for user ${DOCKERHUB_USERNAME}"
           # Check if tag exists by trying to fetch its manifest
@@ -163,7 +163,7 @@ jobs:
           COMFYUI_VERSION="${{ needs.determine-version.outputs.comfyui_version }}"
           IMAGE_VERSION="${{ needs.determine-version.outputs.image_version }}"
 
-          TAG="${COMFYUI_VERSION}-${IMAGE_VERSION}-py${PY}-cuda${CU}-pt${PT}"
+          TAG="${COMFYUI_VERSION}-py${PY}-cuda${CU}-pt${PT}-${IMAGE_VERSION}"
           IMAGE_NAME="${DOCKERHUB_USERNAME}/comfydock-env:${TAG}"
 
           echo "Processing image: $IMAGE_NAME"
