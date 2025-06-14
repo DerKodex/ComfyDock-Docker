@@ -9,6 +9,8 @@ Docker images built and pushed to Dockerhub and can be [found here](https://hub.
 **Note:** I am not a security expert and am open to Issues and PRs that can help to harden the Images included in this repo.
 
 ## Updates
+(06/13/2025): Changed image tag format for new images to include comfydock image version number alongside comfyui version (will make it easier to release updates more frequently). 
+
 (06/07/2025): Removed CUDA 11.8 support for new images (Comfy versions v0.3.40+) due to incompatibilities with xformers and pytorch. Added full CUDA 12.8 support. Fixed updating ComfyUI via manager inside containers.
 
 (04/03/2025): Increased security of docker images by switching from 'root' user inside containers to 'comfy' user. Modified permissions of /app directory to enable full read/write for all users. Available for images v0.3.29+.
