@@ -157,14 +157,14 @@ if [ -s /tmp/initial-problem-files.txt ]; then
         if [ -n "$file" ] && [ -e "$file" ]; then
             old_owner=$(stat -c "%u:%g" "$file" 2>/dev/null || echo "unknown")
             if chown "${COMFY_UID}:${COMFY_GID}" "$file" 2>/dev/null; then
-                ((fixed++))
+                fixed=$((fixed + 1))
                 log_change "FILE" "$file" "$old_owner" "${COMFY_UID}:${COMFY_GID}"
                 # Show progress for large file counts
                 if [ $((fixed % 100)) -eq 0 ]; then
                     echo -e "  ${GREEN}✓${NC} Fixed $fixed/$total files..."
                 fi
             else
-                ((failed++))
+                failed=$((failed + 1))
                 log_change "FILE_FAILED" "$file" "$old_owner" "unchanged"
                 # Show individual failures for first few files
                 if [ $failed -le 10 ]; then

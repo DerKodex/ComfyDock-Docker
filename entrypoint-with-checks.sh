@@ -13,10 +13,8 @@ if [ -n "${WANTED_UID}" ] && [ -n "${WANTED_GID}" ]; then
   echo ">> User remapping completed"
 fi
 
-# Run permission checks if enabled (default: enabled)
-if [ "${SKIP_PERMISSION_CHECK}" != "true" ]; then
-  echo ">> Checking permissions on bind-mounted volumes..."
-  
+# Function to run the actual permission check
+run_permission_check() {
   # Copy the check script to a temporary location
   cp /usr/local/bin/check-permissions.sh /tmp/check-permissions.sh
   chmod +x /tmp/check-permissions.sh
@@ -43,9 +41,32 @@ if [ "${SKIP_PERMISSION_CHECK}" != "true" ]; then
   fi
   
   echo ">> Permission check completed"
-else
-  echo ">> Skipping permission check (SKIP_PERMISSION_CHECK=true)"
-fi
+}
+
+# Run permission checks based on configuration
+PERMISSION_CHECK_MODE="${PERMISSION_CHECK_MODE:-once}"  # startup, once, never
+
+case "$PERMISSION_CHECK_MODE" in
+  "never")
+    echo ">> Skipping permission check (PERMISSION_CHECK_MODE=never)"
+    ;;
+  "once")
+    PERMISSION_CHECK_MARKER="/tmp/.permission-check-done"
+    if [ ! -f "$PERMISSION_CHECK_MARKER" ]; then
+      echo ">> Running one-time permission check on bind-mounted volumes..."
+      run_permission_check
+      # Mark as completed
+      touch "$PERMISSION_CHECK_MARKER"
+    else
+      echo ">> Skipping permission check (already completed once)"
+      echo ">> To re-run: delete $PERMISSION_CHECK_MARKER or set PERMISSION_CHECK_MODE=startup"
+    fi
+    ;;
+  "startup"|*)
+    echo ">> Checking permissions on bind-mounted volumes..."
+    run_permission_check
+    ;;
+esac
 
 # Now drop privileges so we do *not* run as root:
 echo ">> Switching to user 'comfy' (UID=$(id -u comfy), GID=$(id -g comfy))"

@@ -39,7 +39,16 @@ check_permissions() {
     local path="$1"
     local type="$2"  # "file" or "dir"
     
-    # Use su to test as the comfy user
+    # Get file/directory ownership
+    local file_uid=$(stat -c '%u' "$path" 2>/dev/null)
+    local file_gid=$(stat -c '%g' "$path" 2>/dev/null)
+    
+    # If already owned by comfy user, no problem
+    if [ "$file_uid" = "$COMFY_UID" ] && [ "$file_gid" = "$COMFY_GID" ]; then
+        return 0
+    fi
+    
+    # Not owned by comfy user, so test if we can read/write to it
     if ! su comfy -c "test -r '$path' && test -w '$path'" 2>/dev/null; then
         if [ "$type" = "file" ]; then
             echo "$path" >> /tmp/problem-files.txt
@@ -54,16 +63,10 @@ check_permissions() {
 # Function to recursively check directory permissions
 check_directory() {
     local dir="$1"
-    local max_depth="${2:-5}"  # Limit recursion depth
-    local current_depth="${3:-0}"
-    
-    if [ "$current_depth" -ge "$max_depth" ]; then
-        return
-    fi
     
     # Check the directory itself
     if ! check_permissions "$dir" "dir"; then
-        echo "  ❌ Directory not accessible: $dir"
+        echo "" > /dev/null
     fi
     
     # Check files and subdirectories
@@ -71,11 +74,11 @@ check_directory() {
         find "$dir" -maxdepth 1 -mindepth 1 2>/dev/null | while read -r item; do
             if [ -f "$item" ]; then
                 if ! check_permissions "$item" "file"; then
-                    echo "  ❌ File not accessible: $item"
+                    echo "" > /dev/null
                 fi
-            elif [ -d "$item" ]; then
-                # Recurse into subdirectory
-                check_directory "$item" "$max_depth" $((current_depth + 1))
+            elif [ -d "$item" ] && [ ! -L "$item" ]; then
+                # Recurse into subdirectory (skip symlinks to avoid infinite loops)
+                check_directory "$item"
             fi
         done
     fi
@@ -101,6 +104,21 @@ else
         fi
     done <<< "$BIND_MOUNTS"
 fi
+
+# Also check common ComfyUI directories that might be bind-mounted
+echo ""
+echo "Checking custom nodes and extensions directories..."
+COMFY_DIRS=(
+    "/app/ComfyUI/custom_nodes"
+    "/app/ComfyUI/web/extensions"
+)
+
+for dir in "${COMFY_DIRS[@]}"; do
+    if [ -d "$dir" ]; then
+        echo "Checking: $dir"
+        check_directory "$dir" 2
+    fi
+done
 
 # Report results
 echo ""
