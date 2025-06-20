@@ -8,7 +8,13 @@ set -e
 COMFY_UID=${WANTED_UID:-1000}
 COMFY_GID=${WANTED_GID:-1000}
 
+# Configure parallel processing
+PARALLEL_JOBS=${PERMISSION_CHECK_PARALLEL_JOBS:-4}
+FILES_PER_BATCH=${PERMISSION_CHECK_FILES_PER_BATCH:-20}
+DIRS_PER_BATCH=${PERMISSION_CHECK_DIRS_PER_BATCH:-10}
+
 echo "Checking permissions for user comfy (UID=$COMFY_UID, GID=$COMFY_GID)"
+echo "Using $PARALLEL_JOBS parallel processes"
 
 # Clear previous problem files
 > /tmp/problem-files.txt
@@ -60,28 +66,98 @@ check_permissions() {
     return 0
 }
 
-# Function to recursively check directory permissions
+# Function to check a batch of files in parallel
+check_file_batch() {
+    local temp_file="/tmp/problem-files-$$-$(date +%s%N).tmp"
+    
+    for file in "$@"; do
+        if [ -f "$file" ]; then
+            # Get file ownership
+            local file_uid=$(stat -c '%u' "$file" 2>/dev/null)
+            local file_gid=$(stat -c '%g' "$file" 2>/dev/null)
+            
+            # If already owned by comfy user, no problem
+            if [ "$file_uid" = "$COMFY_UID" ] && [ "$file_gid" = "$COMFY_GID" ]; then
+                continue
+            fi
+            
+            # Not owned by comfy user, so test if we can read/write to it
+            if ! su comfy -c "test -r '$file' && test -w '$file'" 2>/dev/null; then
+                echo "$file" >> "$temp_file"
+            fi
+        fi
+    done
+    
+    # Append to main problem file if we found any issues
+    if [ -s "$temp_file" ]; then
+        cat "$temp_file" >> /tmp/problem-files.txt
+    fi
+    rm -f "$temp_file"
+}
+
+# Function to check a batch of directories in parallel
+check_dir_batch() {
+    local temp_file="/tmp/problem-dirs-$$-$(date +%s%N).tmp"
+    
+    for dir in "$@"; do
+        if [ -d "$dir" ]; then
+            # Get directory ownership
+            local dir_uid=$(stat -c '%u' "$dir" 2>/dev/null)
+            local dir_gid=$(stat -c '%g' "$dir" 2>/dev/null)
+            
+            # If already owned by comfy user, no problem
+            if [ "$dir_uid" = "$COMFY_UID" ] && [ "$dir_gid" = "$COMFY_GID" ]; then
+                continue
+            fi
+            
+            # Not owned by comfy user, so test if we can read/write to it
+            if ! su comfy -c "test -r '$dir' && test -w '$dir'" 2>/dev/null; then
+                echo "$dir" >> "$temp_file"
+            fi
+        fi
+    done
+    
+    # Append to main problem file if we found any issues
+    if [ -s "$temp_file" ]; then
+        cat "$temp_file" >> /tmp/problem-dirs.txt
+    fi
+    rm -f "$temp_file"
+}
+
+# Export functions and variables for parallel processing
+export -f check_file_batch check_dir_batch
+export COMFY_UID COMFY_GID PARALLEL_JOBS FILES_PER_BATCH DIRS_PER_BATCH
+
+# Function to check directory permissions with parallel processing
 check_directory() {
     local dir="$1"
     
-    # Check the directory itself
-    if ! check_permissions "$dir" "dir"; then
-        echo "" > /dev/null
-    fi
+    echo "  Scanning directory structure..."
     
-    # Check files and subdirectories
-    if [ -r "$dir" ]; then
-        find "$dir" -maxdepth 1 -mindepth 1 2>/dev/null | while read -r item; do
-            if [ -f "$item" ]; then
-                if ! check_permissions "$item" "file"; then
-                    echo "" > /dev/null
-                fi
-            elif [ -d "$item" ] && [ ! -L "$item" ]; then
-                # Recurse into subdirectory (skip symlinks to avoid infinite loops)
-                check_directory "$item"
-            fi
-        done
+    # Get all files and directories at once, excluding symlinks
+    # Use -print0 and xargs -0 to handle filenames with spaces and special characters
+    
+    echo "  Scanning for files..."
+    local temp_files="/tmp/files-$$-$(date +%s%N).list"
+    find "$dir" -type f -print0 2>/dev/null | head -c 1000000 > "$temp_files"  # Limit file list size
+    
+    if [ -s "$temp_files" ]; then
+        local file_count=$(tr '\0' '\n' < "$temp_files" | wc -l)
+        # echo "  Checking $file_count files in parallel..."
+        cat "$temp_files" | xargs -0 -n "$FILES_PER_BATCH" -P "$PARALLEL_JOBS" bash -c 'check_file_batch "$@"' _
     fi
+    rm -f "$temp_files"
+    
+    echo "  Scanning for directories..."
+    local temp_dirs="/tmp/dirs-$$-$(date +%s%N).list"
+    find "$dir" -type d -print0 2>/dev/null | head -c 500000 > "$temp_dirs"  # Limit dir list size
+    
+    if [ -s "$temp_dirs" ]; then
+        local dir_count=$(tr '\0' '\n' < "$temp_dirs" | wc -l)
+        # echo "  Checking $dir_count directories in parallel..."
+        cat "$temp_dirs" | xargs -0 -n "$DIRS_PER_BATCH" -P "$PARALLEL_JOBS" bash -c 'check_dir_batch "$@"' _
+    fi
+    rm -f "$temp_dirs"
 }
 
 # Main execution
@@ -105,7 +181,7 @@ else
     done <<< "$BIND_MOUNTS"
 fi
 
-# Also check common ComfyUI directories that might be bind-mounted
+# Also check common ComfyUI directories that might be bind-mounted  
 echo ""
 echo "Checking custom nodes and extensions directories..."
 COMFY_DIRS=(
@@ -116,7 +192,7 @@ COMFY_DIRS=(
 for dir in "${COMFY_DIRS[@]}"; do
     if [ -d "$dir" ]; then
         echo "Checking: $dir"
-        check_directory "$dir" 2
+        check_directory "$dir"
     fi
 done
 

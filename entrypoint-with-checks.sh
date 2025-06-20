@@ -1,14 +1,50 @@
 #!/usr/bin/env bash
 set -e
 
+# Function to detect bind mounts in a directory
+detect_bind_mounts_in_path() {
+    local base_path="$1"
+    # Parse /proc/self/mountinfo to find bind mounts under the base path
+    while IFS= read -r line; do
+        # Extract mount point (5th field after splitting by space)
+        mount_point=$(echo "$line" | awk '{print $5}')
+        
+        # Check if this mount point is under our base path
+        if [[ "$mount_point" =~ ^${base_path}(/|$) ]]; then
+            echo "$mount_point"
+        fi
+    done < /proc/self/mountinfo
+}
+
 # If user specified a new UID/GID at runtime, adjust user 'comfy' accordingly.
 if [ -n "${WANTED_UID}" ] && [ -n "${WANTED_GID}" ]; then
   echo ">> Re-mapping comfy user to UID=${WANTED_UID} GID=${WANTED_GID}"
   usermod  -o -u "${WANTED_UID}" comfy
   groupmod -o -g "${WANTED_GID}" comfy
 
-  echo ">> Changing ownership of /app/ComfyUI to comfy:comfy"
-  chown -R comfy:comfy /app/ComfyUI
+  # Check if we should skip ownership changes entirely
+  if [ "${SKIP_OWNERSHIP_FIX}" = "true" ]; then
+    echo ">> Skipping ownership changes (SKIP_OWNERSHIP_FIX=true)"
+  else
+    echo ">> Changing ownership of /app/ComfyUI (excluding bind mounts)"
+    
+    # Detect bind mounts in /app/ComfyUI
+    COMFYUI_BIND_MOUNTS=$(detect_bind_mounts_in_path "/app/ComfyUI" | sort -u)
+    
+    if [ -n "$COMFYUI_BIND_MOUNTS" ]; then
+      echo ">> Detected bind mounts (will skip these):"
+      echo "$COMFYUI_BIND_MOUNTS" | sed 's/^/>>   /'
+      
+      # Use find to change ownership while excluding bind-mounted directories
+      # The -mount option prevents find from crossing filesystem boundaries
+      find /app/ComfyUI -mount -exec chown comfy:comfy {} + 2>/dev/null || true
+      
+      echo ">> Ownership changed for non-bind-mounted files only"
+    else
+      echo ">> No bind mounts detected, changing ownership of entire directory"
+      chown -R comfy:comfy /app/ComfyUI
+    fi
+  fi
 
   echo ">> User remapping completed"
 fi
@@ -44,7 +80,7 @@ run_permission_check() {
 }
 
 # Run permission checks based on configuration
-PERMISSION_CHECK_MODE="${PERMISSION_CHECK_MODE:-once}"  # startup, once, never
+PERMISSION_CHECK_MODE="${PERMISSION_CHECK_MODE:-startup}"  # startup, once, never
 
 case "$PERMISSION_CHECK_MODE" in
   "never")
