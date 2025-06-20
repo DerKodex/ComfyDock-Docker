@@ -1,7 +1,6 @@
 FROM ubuntu:22.04
 
 # 1) Install system dependencies and set up glvnd (as root).
-#    We do this *before* switching to a non-root user, because apt needs root.
 WORKDIR /app
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update && \
@@ -21,22 +20,23 @@ RUN apt update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# 2) Create a placeholder user 'comfy' with some default UID/GID (1024).
-#    You can pick any default UID/GID. We'll adjust it again at runtime if needed.
-RUN umask 000 && groupadd -g 1024 comfy \
-    && useradd -m -u 1024 -g comfy -s /bin/bash comfy \
-    && mkdir -p /home/comfy/.cache \
-    && chmod -R 777 /home/comfy/.cache \
-    && mkdir -p /app \
-    && chmod -R 777 /app \
-    && echo "comfy ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/comfy \
-    && chmod 0440 /etc/sudoers.d/comfy
+# 2) Create a placeholder user 'comfy' with default UID/GID (1000).
+#    We'll adjust it at runtime if needed. Using 1000 as it's the common default for first user.
+RUN groupadd -g 1000 comfy \
+    && useradd -m -u 1000 -g comfy -s /bin/bash comfy
+    # && echo "comfy ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/comfy \
+    # && chmod 0440 /etc/sudoers.d/comfy
 
-# 3) Switch to the comfy user. From now on, everything we install will belong to comfy by default.
-USER comfy
-WORKDIR /app
+# 3) Create directories with world-writable permissions (as root)
+#    This ensures any user can read/write regardless of ownership
+RUN umask 000 && \
+    mkdir -p /home/comfy/.cache && \
+    chmod -R 777 /home/comfy/.cache && \
+    mkdir -p /app && \
+    chmod -R 777 /app
 
-# 4) Basic environment variables
+# 4) Stay as root for all installations
+# Basic environment variables
 ENV NVIDIA_DRIVER_CAPABILITIES="all"
 ENV NVIDIA_VISIBLE_DEVICES="all"
 ENV MESA_D3D12_DEFAULT_ADAPTER_NAME="NVIDIA"
@@ -45,41 +45,59 @@ ENV WINDOW_BACKEND="headless"
 ENV DOCKER_RUNTIME="1"
 
 # 5) UV environment variables
+# Set XDG_DATA_HOME to install Python in comfy's home directory
 ENV UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1 \
     UV_PROJECT_ENVIRONMENT=/app/.venv \
     UV_CACHE_DIR=/home/comfy/.cache/uv \
-    UV_HTTP_TIMEOUT=300
+    UV_HTTP_TIMEOUT=300 \
+    XDG_DATA_HOME=/home/comfy/.local/share \
+    UV_PYTHON_INSTALL_DIR=/home/comfy/.local/share/uv/python
 
-# 6) Copy uv from a multi-stage build (still as comfy, that's OK)
+# 6) Copy uv from a multi-stage build (as root)
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# 7) Create Python virtual environment (will belong to 'comfy' user).
+# 7) Create Python virtual environment (as root, with world-writable permissions).
 ARG PYTHON_VERSION=3.12
-RUN --mount=type=cache,target=/home/comfy/.cache,uid=1024,gid=1024 \
+RUN --mount=type=cache,target=/home/comfy/.cache,uid=0,gid=0 \
     umask 000 && \
+    # Ensure the Python install directory exists with proper permissions
+    mkdir -p /home/comfy/.local/share/uv/python && \
+    chmod -R 777 /home/comfy/.local && \
+    # Create the virtual environment
     uv venv /app/.venv --python ${PYTHON_VERSION} && \
-    sudo chmod -R 777 /app/.venv
+    chmod -R 777 /app/.venv && \
+    chmod +x /app/.venv/bin/* && \
+    # Make the uv Python installation accessible
+    chmod -R 755 /home/comfy/.local/share/uv/python || true
 
 # 8) Make the virtual environment the default Python environment
 ENV PATH="/app/.venv/bin:$PATH"
 
-# 9) Install PyTorch + other Python dependencies in the venv (still as comfy).
+# 9) Install PyTorch + other Python dependencies in the venv (as root).
 ARG CUDA_VERSION=cu124
 ARG PYTORCH_VERSION=stable
-RUN --mount=type=cache,target=/home/comfy/.cache,uid=1024,gid=1024 \
+RUN --mount=type=cache,target=/home/comfy/.cache,uid=0,gid=0 \
+    umask 000 && \
     if [ "${PYTORCH_VERSION}" = "stable" ]; then \
+        echo "PyTorch stable installed" > /home/comfy/.torch_version.txt && \
         uv pip install torch torchvision torchaudio \
             --index-url "https://download.pytorch.org/whl/${CUDA_VERSION}"; \
     elif [ "${PYTORCH_VERSION}" = "nightly" ]; then \
+        echo "PyTorch nightly installed" > /home/comfy/.torch_version.txt && \
         uv pip install --pre torch torchvision torchaudio \
-            --index-url "https://download.pytorch.org/whl/nightly/${CUDA_VERSION}"; \
+            --index-url "https://download.pytorch.org/whl/nightly/${CUDA_VERSION}" \
+            --extra-index-url "https://pypi.org/simple"; \
     fi && \
-    uv pip install -U xformers --index-url "https://download.pytorch.org/whl/${CUDA_VERSION}" && \
+    # uv pip install -U xformers --index-url "https://download.pytorch.org/whl/${CUDA_VERSION}" && \
     uv pip install sageattention && \
-    uv pip install --upgrade pip
+    uv pip install --upgrade pip && \
+    chmod -R 777 /app/.venv && \
+    chmod +x /app/.venv/bin/*
 
-# 10) Clone ComfyUI and install its dependencies (still as comfy).
+USER comfy
+
+# 10) Clone ComfyUI and install its dependencies (as comfy).
 ARG COMFYUI_VERSION=master
 RUN umask 000 && \
     git clone https://github.com/comfyanonymous/ComfyUI.git /app/ComfyUI && \
@@ -104,29 +122,38 @@ RUN umask 000 && \
         git checkout -b master origin/master; \
     fi && \
     # Set upstream for the current branch
-    git branch --set-upstream-to=origin/master master || true
+    git branch --set-upstream-to=origin/master master || true && \
+    chown -R comfy:comfy /app/ComfyUI
 
 WORKDIR /app/ComfyUI
-RUN --mount=type=cache,target=/home/comfy/.cache,uid=1024,gid=1024 \
+RUN --mount=type=cache,target=/home/comfy/.cache,uid=0,gid=0 \
     umask 000 && \
     uv pip install -r requirements.txt && \
     git clone https://github.com/ltdrdata/ComfyUI-Manager.git /app/ComfyUI/custom_nodes/ComfyUI-Manager && \
-    uv pip install -r /app/ComfyUI/custom_nodes/ComfyUI-Manager/requirements.txt
+    uv pip install -r /app/ComfyUI/custom_nodes/ComfyUI-Manager/requirements.txt && \
+    chown -R comfy:comfy /app/ComfyUI/custom_nodes
 
-# 11) Pre-initialize ComfyUI to create directories with proper permissions
+# 11) Pre-initialize ComfyUI to and test if it works
 RUN umask 000 && cd /app/ComfyUI && \
     python main.py --cpu --quick-test-for-ci
 
-# 11) Expose port
-EXPOSE 8188
-
-# 12) Switch back to root so that, at runtime, we can adjust comfy's UID/GID if the user wants.
-# TODO: Use a non-root user with sudo access instead of root
 USER root
 
-# 13) Copy an entrypoint script that does the final usermod+su
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN umask 000 && sudo chmod +x /usr/local/bin/entrypoint.sh
+# RUN chmod -R 777 /app/ComfyUI/custom_nodes && \
+# chmod -R 777 /app/ComfyUI
 
-# 14) Our default entrypoint is that script
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+# 12) Expose port
+EXPOSE 8188
+
+# 13) Copy scripts and set up permissions
+COPY entrypoint-with-checks.sh /usr/local/bin/entrypoint-with-checks.sh
+COPY check-permissions.sh /usr/local/bin/check-permissions.sh
+COPY fix-permissions.sh /usr/local/bin/fix-permissions
+RUN chmod +x /usr/local/bin/entrypoint-with-checks.sh && \
+    chmod +x /usr/local/bin/check-permissions.sh && \
+    chmod +x /usr/local/bin/fix-permissions && \
+    # Make fix-permissions available in PATH without .sh extension
+    ln -sf /usr/local/bin/fix-permissions /usr/bin/fix-permissions
+
+# 14) Stay as root - the entrypoint will handle user switching
+ENTRYPOINT ["/usr/local/bin/entrypoint-with-checks.sh"]
