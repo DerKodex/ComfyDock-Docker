@@ -145,9 +145,15 @@ USER root
 # 12) Expose port
 EXPOSE 8188
 
-# 13) Copy an entrypoint script that does the final usermod+su
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+# 13) Copy scripts and set up permissions
+COPY entrypoint-with-checks.sh /usr/local/bin/entrypoint-with-checks.sh
+COPY check-permissions.sh /usr/local/bin/check-permissions.sh
+COPY fix-permissions.sh /usr/local/bin/fix-permissions
+RUN chmod +x /usr/local/bin/entrypoint-with-checks.sh && \
+    chmod +x /usr/local/bin/check-permissions.sh && \
+    chmod +x /usr/local/bin/fix-permissions && \
+    # Make fix-permissions available in PATH without .sh extension
+    ln -sf /usr/local/bin/fix-permissions /usr/bin/fix-permissions
 
 # 14) Stay as root - the entrypoint will handle user switching
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint-with-checks.sh"]
