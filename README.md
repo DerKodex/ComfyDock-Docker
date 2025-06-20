@@ -9,7 +9,7 @@ Docker images built and pushed to Dockerhub and can be [found here](https://hub.
 **Note:** I am not a security expert and am open to Issues and PRs that can help to harden the Images included in this repo.
 
 ## Updates
-(06/19/2025): Force comfy user to 1000:1000 to match default WSL distro user permissions. 
+(06/20/2025): Force comfy user to 1000:1000 to match default WSL distro user permissions. Added permissions checking on initial container startup, as well as a fix-permissions script which can be run via exec into the container (use `comfydock dev exec` for a convienient way to do so) and running the command `fix-permissions`.
 
 (06/13/2025): Changed image tag format for new images to include comfydock image version number alongside comfyui version (will make it easier to release updates more frequently). 
 
