@@ -132,12 +132,12 @@ export COMFY_UID COMFY_GID PARALLEL_JOBS FILES_PER_BATCH DIRS_PER_BATCH
 check_directory() {
     local dir="$1"
     
-    echo "  Scanning directory structure..."
+    # echo "  Scanning directory structure..."
     
     # Get all files and directories at once, excluding symlinks
     # Use -print0 and xargs -0 to handle filenames with spaces and special characters
     
-    echo "  Scanning for files..."
+    # echo "  Scanning for files..."
     local temp_files="/tmp/files-$$-$(date +%s%N).list"
     find "$dir" -type f -print0 2>/dev/null | head -c 1000000 > "$temp_files"  # Limit file list size
     
@@ -148,7 +148,7 @@ check_directory() {
     fi
     rm -f "$temp_files"
     
-    echo "  Scanning for directories..."
+    # echo "  Scanning for directories..."
     local temp_dirs="/tmp/dirs-$$-$(date +%s%N).list"
     find "$dir" -type d -print0 2>/dev/null | head -c 500000 > "$temp_dirs"  # Limit dir list size
     

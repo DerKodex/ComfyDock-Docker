@@ -80,7 +80,7 @@ run_permission_check() {
 }
 
 # Run permission checks based on configuration
-PERMISSION_CHECK_MODE="${PERMISSION_CHECK_MODE:-startup}"  # startup, once, never
+PERMISSION_CHECK_MODE="${PERMISSION_CHECK_MODE:-once}"  # startup, once, never
 
 case "$PERMISSION_CHECK_MODE" in
   "never")
