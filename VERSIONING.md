@@ -8,9 +8,9 @@ Images are tagged with the following format:
 ```
 
 ### Examples
-- `v1.3.0-v1.0.0-py3.12-cuda12.4-ptstable` - ComfyUI v1.3.0, first image version
-- `v1.3.0-v1.1.0-py3.12-cuda12.4-ptstable` - ComfyUI v1.3.0, updated dockerfile
-- `master-v1.0.0-py3.12-cuda12.4-ptstable` - ComfyUI master branch
+- `v1.3.0-py3.12-cuda12.4-ptstable-v1.0.0` - ComfyUI v1.3.0, first image version
+- `v1.3.0-py3.12-cuda12.4-ptstable-v1.1.0-` - ComfyUI v1.3.0, updated dockerfile
+- `master-py3.12-cuda12.4-ptstable-v1.0.0-` - ComfyUI master branch
 
 ## Version Components
 
@@ -19,18 +19,18 @@ Images are tagged with the following format:
 - Automatically detected for scheduled builds
 - Can be manually specified for workflow_dispatch
 
-### Image Version
-- Tracks changes to the Dockerfile, dependencies, or security fixes
-- Follows semantic versioning (e.g., `v1.0.0`, `v1.1.0`, `v2.0.0`)
-- **Always moves forward** - never revert to older versions for new ComfyUI releases
-- Current version is tracked in the `VERSION` file and used for all builds
-- Increment when making changes that don't require a new ComfyUI version
-
 ### Python/CUDA/PyTorch
 - Matrix build parameters for different environment combinations
 - `py{version}` - Python version (3.10, 3.12)
 - `cuda{version}` - CUDA version (12.4, 12.8)
 - `pt{version}` - PyTorch version (stable)
+
+### Image Version
+- Tracks changes to the Dockerfile, dependencies, or security fixes
+- Follows semantic versioning "Major-Minor-Patch" (e.g., `v1.0.0`, `v1.1.0`, `v2.0.0`)
+- **Always moves forward** - never revert to older versions for new ComfyUI releases
+- Current version is tracked in the `VERSION` file and used for all builds
+- Increment when making changes that don't require a new ComfyUI version
 
 ## Workflow Usage
 
@@ -73,15 +73,8 @@ workflow_dispatch:
 ### Version Progression Example
 ```
 v1.0.0 -> Initial release
-v1.1.0 -> Security fix (applies to all future ComfyUI versions)
-v1.2.0 -> Dependency update (applies to all future ComfyUI versions)
-v2.0.0 -> Major Dockerfile restructure (applies to all future ComfyUI versions)
+v1.0.1 -> Small patch or bug fixes
+v1.1.0 -> Security fix (applies to all future ComfyDock versions)
+v1.2.0 -> Dependency update (applies to all future ComfyDock versions)
+v2.0.0 -> Major Dockerfile restructure (applies to all future ComfyDock versions)
 ```
-
-When ComfyUI v1.4.0 releases after you're on image v2.0.0:
-- ✅ `v1.4.0-v2.0.0-py3.12-cuda12.4-ptstable` (correct)
-- ❌ `v1.4.0-v1.0.0-py3.12-cuda12.4-ptstable` (wrong - loses improvements)
-
-## Version History
-
-- `v1.0.0` - Initial versioned release 

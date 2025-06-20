@@ -4,10 +4,12 @@ set -e
 # If user specified a new UID/GID at runtime, adjust user 'comfy' accordingly.
 if [ -n "${WANTED_UID}" ] && [ -n "${WANTED_GID}" ]; then
   echo ">> Re-mapping comfy user to UID=${WANTED_UID} GID=${WANTED_GID}"
-  groupmod -o -g "${WANTED_GID}" comfy
   usermod  -o -u "${WANTED_UID}" comfy
+  groupmod -o -g "${WANTED_GID}" comfy
 
   # groupmod -o -g "1024" comfy && usermod  -o -u "1024" comfy
+
+  echo ">> Changing ownership of /app/ComfyUI to comfy:comfy"
 
   chown -R comfy:comfy /app/ComfyUI
 

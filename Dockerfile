@@ -32,8 +32,6 @@ RUN groupadd -g 1000 comfy \
 RUN umask 000 && \
     mkdir -p /home/comfy/.cache && \
     chmod -R 777 /home/comfy/.cache && \
-    mkdir -p /home/comfy/.local/share && \
-    chmod -R 777 /home/comfy/.local && \
     mkdir -p /app && \
     chmod -R 777 /app
 
@@ -65,7 +63,7 @@ RUN --mount=type=cache,target=/home/comfy/.cache,uid=0,gid=0 \
     umask 000 && \
     # Ensure the Python install directory exists with proper permissions
     mkdir -p /home/comfy/.local/share/uv/python && \
-    chmod -R 777 /home/comfy/.local/share && \
+    chmod -R 777 /home/comfy/.local && \
     # Create the virtual environment
     uv venv /app/.venv --python ${PYTHON_VERSION} && \
     chmod -R 777 /app/.venv && \
@@ -99,7 +97,7 @@ RUN --mount=type=cache,target=/home/comfy/.cache,uid=0,gid=0 \
 
 USER comfy
 
-# 10) Clone ComfyUI and install its dependencies (as root).
+# 10) Clone ComfyUI and install its dependencies (as comfy).
 ARG COMFYUI_VERSION=master
 RUN umask 000 && \
     git clone https://github.com/comfyanonymous/ComfyUI.git /app/ComfyUI && \
@@ -135,7 +133,7 @@ RUN --mount=type=cache,target=/home/comfy/.cache,uid=0,gid=0 \
     uv pip install -r /app/ComfyUI/custom_nodes/ComfyUI-Manager/requirements.txt && \
     chown -R comfy:comfy /app/ComfyUI/custom_nodes
 
-# 11) Pre-initialize ComfyUI to create directories with proper permissions
+# 11) Pre-initialize ComfyUI to and test if it works
 RUN umask 000 && cd /app/ComfyUI && \
     python main.py --cpu --quick-test-for-ci
 
