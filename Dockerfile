@@ -13,6 +13,7 @@ RUN apt update && \
         libgl1-mesa-glx \
         libglib2.0-0 \
         ffmpeg \
+        build-essential \
         sudo && \
     mkdir -p /usr/share/glvnd/egl_vendor.d && \
     echo '{"file_format_version":"1.0.0","ICD":{"library_path":"/usr/lib/x86_64-linux-gnu/libEGL_nvidia.so.0"}}' \
