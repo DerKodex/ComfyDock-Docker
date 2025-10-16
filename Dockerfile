@@ -83,14 +83,13 @@ RUN --mount=type=cache,target=/home/comfy/.cache,uid=0,gid=0 \
     if [ "${PYTORCH_VERSION}" = "stable" ]; then \
         echo "PyTorch stable installed" > /home/comfy/.torch_version.txt && \
         uv pip install torch torchvision torchaudio \
-            --index-url "https://download.pytorch.org/whl/${CUDA_VERSION}"; \
+            --index-url "https://download.pytorch.org/whl/cu121"; \
     elif [ "${PYTORCH_VERSION}" = "nightly" ]; then \
         echo "PyTorch nightly installed" > /home/comfy/.torch_version.txt && \
         uv pip install --pre torch torchvision torchaudio \
-            --index-url "https://download.pytorch.org/whl/nightly/${CUDA_VERSION}" \
+            --index-url "https://download.pytorch.org/whl/nightly/cu121" \
             --extra-index-url "https://pypi.org/simple"; \
     fi && \
-    # uv pip install -U xformers --index-url "https://download.pytorch.org/whl/${CUDA_VERSION}" && \
     uv pip install sageattention && \
     uv pip install --upgrade pip && \
     chmod -R 777 /app/.venv && \
